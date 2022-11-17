@@ -9,15 +9,13 @@ import (
 )
 
 func main() {
-
 	var cities []model.City
 
-	if err := utils.ReadAndUnmarshal("russian-citis.json", &cities); err != nil {
+	if err := utils.ReadAndUnmarshal("russian-cities.json", &cities); err != nil {
 		log.Println(err)
 	}
 
 	for _, city := range cities {
 		fmt.Print(city.Name, " ")
 	}
-
 }
