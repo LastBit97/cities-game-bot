@@ -45,7 +45,6 @@ func (cg *citiesGameImpl) Exists(cityName string) bool {
 		}
 	}
 	return false
-
 }
 
 func (cg *citiesGameImpl) Contains(cityName string) bool {
@@ -55,7 +54,6 @@ func (cg *citiesGameImpl) Contains(cityName string) bool {
 		}
 	}
 	return false
-
 }
 
 func (cg *citiesGameImpl) GetRandomCity(cityName string) string {
@@ -65,18 +63,34 @@ func (cg *citiesGameImpl) GetRandomCity(cityName string) string {
 }
 
 func (cg *citiesGameImpl) getCorrectCities(cityName string) []string {
-	cityByRune := []rune(cityName)
-	lastChar := string(cityByRune[len(cityByRune)-1:])
+	lastChar := getLastChar(cityName)
 
 	var correctCities []string
 	for _, city := range cg.cities {
-		cityToRunes := []rune(city)
-		firstChar := string(cityToRunes[0:1])
+		firstChar := getFirstChar(city)
 		if strings.EqualFold(firstChar, lastChar) {
 			correctCities = append(correctCities, city)
 		}
 	}
 	return correctCities
+}
+
+func getFirstChar(city string) string {
+	cityToRunes := []rune(city)
+	firstChar := string(cityToRunes[0:1])
+	return firstChar
+}
+
+func getLastChar(cityName string) string {
+	cityByRune := []rune(cityName)
+	lastChar := string(cityByRune[len(cityByRune)-1:])
+	return lastChar
+}
+
+func (cg *citiesGameImpl) CheckCity(lastCity string, currentCity string) bool {
+	lastChar := getLastChar(lastCity)
+	firstChar := getFirstChar(currentCity)
+	return lastChar == firstChar
 }
 
 func (cg *citiesGameImpl) GetCities() []string {
