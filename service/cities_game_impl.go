@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"strings"
@@ -14,8 +16,7 @@ type citiesGameImpl struct {
 	cities []string
 }
 
-func NewCitiesGame() CitiesGame {
-	cities := []string{"Москва", "Архангельск", "Кирсанов", "Владивосток", "Кострома", "Астрахань"}
+func NewCitiesGame(cities []string) CitiesGame {
 	return &citiesGameImpl{cities}
 }
 
@@ -56,41 +57,55 @@ func (cg *citiesGameImpl) Contains(cityName string) bool {
 	return false
 }
 
-func (cg *citiesGameImpl) GetRandomCity(cityName string) string {
-	cities := cg.getCorrectCities(cityName)
+func (cg *citiesGameImpl) GetRandomCity(cityName string) (string, error) {
+	cities, err := cg.getCorrectCities(cityName)
+	if err != nil {
+		return "", err
+	}
 	rand.Seed(time.Now().Unix())
-	return cities[rand.Intn(len(cities))]
+	return cities[rand.Intn(len(cities))], nil
 }
 
-func (cg *citiesGameImpl) getCorrectCities(cityName string) []string {
-	lastChar := getLastChar(cityName)
+func (cg *citiesGameImpl) getCorrectCities(cityName string) ([]string, error) {
+	lastChar := cg.GetLastChar(cityName)
 
 	var correctCities []string
 	for _, city := range cg.cities {
-		firstChar := getFirstChar(city)
+		firstChar := cg.getFirstChar(city)
 		if strings.EqualFold(firstChar, lastChar) {
 			correctCities = append(correctCities, city)
 		}
 	}
-	return correctCities
+	if correctCities == nil {
+		return nil, errors.New("no cities found")
+	}
+	return correctCities, nil
 }
 
-func getFirstChar(city string) string {
+func (cg *citiesGameImpl) getFirstChar(city string) string {
 	cityToRunes := []rune(city)
 	firstChar := string(cityToRunes[0:1])
 	return firstChar
 }
 
-func getLastChar(cityName string) string {
+func (cg *citiesGameImpl) GetLastChar(cityName string) string {
+	if cityName == "" {
+		return ""
+	}
 	cityByRune := []rune(cityName)
 	lastChar := string(cityByRune[len(cityByRune)-1:])
+	if lastChar == "ь" || lastChar == "ы" {
+		cityName = string(cityByRune[:len(cityByRune)-1])
+		fmt.Println(cityName)
+		return cg.GetLastChar(cityName)
+	}
 	return lastChar
 }
 
 func (cg *citiesGameImpl) CheckCity(lastCity string, currentCity string) bool {
-	lastChar := getLastChar(lastCity)
-	firstChar := getFirstChar(currentCity)
-	return lastChar == firstChar
+	lastChar := cg.GetLastChar(lastCity)
+	firstChar := cg.getFirstChar(currentCity)
+	return strings.EqualFold(lastChar, firstChar)
 }
 
 func (cg *citiesGameImpl) GetCities() []string {
