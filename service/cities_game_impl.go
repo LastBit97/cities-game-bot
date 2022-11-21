@@ -13,11 +13,18 @@ import (
 )
 
 type citiesGameImpl struct {
-	cities []string
+	fullListCities []string
+	cities         []string
 }
 
-func NewCitiesGame(cities []string) CitiesGame {
-	return &citiesGameImpl{cities}
+func NewCitiesGame() CitiesGame {
+	fullListCities := getFullListCities()
+	cities := getFullListCities()
+	return &citiesGameImpl{fullListCities, cities}
+}
+
+func (cg *citiesGameImpl) GetCities() []string {
+	return cg.cities
 }
 
 func (cg *citiesGameImpl) DeleteCity(cityName string) {
@@ -26,25 +33,16 @@ func (cg *citiesGameImpl) DeleteCity(cityName string) {
 			cg.cities = append(cg.cities[:i], cg.cities[i+1:]...)
 		}
 	}
+	log.Printf("remove city: %s from list", cityName)
 }
 
 func (cg *citiesGameImpl) Exists(cityName string) bool {
-	var cities []model.City
-
-	if err := utils.ReadAndUnmarshal("russian-cities.json", &cities); err != nil {
-		log.Println(err)
-	}
-
-	var fullListCities []string
-	for _, city := range cities {
-		fullListCities = append(fullListCities, city.Name)
-	}
-
-	for _, city := range fullListCities {
+	for _, city := range cg.fullListCities {
 		if city == cityName {
 			return true
 		}
 	}
+	log.Printf("city: %s doesn't exist", cityName)
 	return false
 }
 
@@ -82,10 +80,10 @@ func (cg *citiesGameImpl) getCorrectCities(cityName string) ([]string, error) {
 	return correctCities, nil
 }
 
-func (cg *citiesGameImpl) getFirstChar(city string) string {
-	cityToRunes := []rune(city)
-	firstChar := string(cityToRunes[0:1])
-	return firstChar
+func (cg *citiesGameImpl) CheckCity(lastCity string, currentCity string) bool {
+	lastChar := cg.GetLastChar(lastCity)
+	firstChar := cg.getFirstChar(currentCity)
+	return strings.EqualFold(lastChar, firstChar)
 }
 
 func (cg *citiesGameImpl) GetLastChar(cityName string) string {
@@ -102,12 +100,25 @@ func (cg *citiesGameImpl) GetLastChar(cityName string) string {
 	return lastChar
 }
 
-func (cg *citiesGameImpl) CheckCity(lastCity string, currentCity string) bool {
-	lastChar := cg.GetLastChar(lastCity)
-	firstChar := cg.getFirstChar(currentCity)
-	return strings.EqualFold(lastChar, firstChar)
+func (cg *citiesGameImpl) getFirstChar(city string) string {
+	if city == "" {
+		return ""
+	}
+	cityToRunes := []rune(city)
+	firstChar := string(cityToRunes[0:1])
+	return firstChar
 }
 
-func (cg *citiesGameImpl) GetCities() []string {
-	return cg.cities
+func getFullListCities() []string {
+	var cities []model.City
+
+	if err := utils.ReadAndUnmarshal("russian-cities.json", &cities); err != nil {
+		log.Fatalln(err)
+	}
+
+	var russianCities []string
+	for _, city := range cities {
+		russianCities = append(russianCities, city.Name)
+	}
+	return russianCities
 }

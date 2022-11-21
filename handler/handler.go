@@ -22,6 +22,7 @@ func NewBotHandler(service service.CitiesGame) BotHandler {
 func (h *BotHandler) PlayGame(ctx tele.Context) error {
 	city := ctx.Text()
 	chatId := ctx.Chat().ID
+	log.Printf("player named city: %s", city)
 
 	if lastCities == nil {
 		lastCities = make(map[int64]string)
@@ -38,9 +39,6 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 		}
 		return nil
 	}
-
-	log.Println(lastCity)
-	log.Println(city)
 
 	if lastCity != "" {
 		if !h.cityService.CheckCity(lastCity, city) {
@@ -71,24 +69,13 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 	letter := h.cityService.GetLastChar(cityReply)
 	letterMsg := fmt.Sprintf(letterResponse, letter)
 
-	durationReply := time.Duration(2) * time.Second
-	time.Sleep(durationReply)
-
-	if err := ctx.Send("Думаю..."); err != nil {
-		return err
-	}
-
-	time.Sleep(durationReply)
-
-	if err := ctx.Send("Очень сильно думаю..."); err != nil {
-		return err
-	}
-
+	durationReply := time.Second
 	time.Sleep(durationReply)
 
 	if err := ctx.Send(cityReply); err != nil {
 		return err
 	}
+	log.Printf("bot reply: %s", cityReply)
 
 	if err := ctx.Send(letterMsg); err != nil {
 		return err
