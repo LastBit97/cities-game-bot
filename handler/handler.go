@@ -28,35 +28,12 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 		lastCities = make(map[int64]string)
 	}
 
-	var lastCity string
-	if val, ok := lastCities[chatId]; ok {
-		lastCity = val
+	check, err := h.checkPlayerMsg(chatId, city, ctx)
+	if !check {
+		return err
 	}
 
-	if !h.cityService.Exists(city) {
-		if err := ctx.Send(cityNotExist); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if lastCity != "" {
-		if !h.cityService.CheckCity(lastCity, city) {
-			letter := h.cityService.GetLastChar(lastCity)
-			msg := fmt.Sprintf(letterResponse, letter)
-			if err := ctx.Send(msg); err != nil {
-				return err
-			}
-			return nil
-		}
-	}
-
-	if !h.cityService.Contains(city) {
-		if err := ctx.Send(cityBeenUse); err != nil {
-			return err
-		}
-		return nil
-	}
+	h.cityService.DeleteCity(city)
 
 	cityReply, err := h.cityService.GetRandomCity(city)
 	if err != nil {
@@ -65,10 +42,6 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 		}
 		return err
 	}
-
-	letter := h.cityService.GetLastChar(cityReply)
-	letterMsg := fmt.Sprintf(letterResponse, letter)
-
 	durationReply := time.Second
 	time.Sleep(durationReply)
 
@@ -77,13 +50,47 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 	}
 	log.Printf("bot reply: %s", cityReply)
 
+	letter := h.cityService.GetLastChar(cityReply)
+	letterMsg := fmt.Sprintf(letterResponse, letter)
 	if err := ctx.Send(letterMsg); err != nil {
 		return err
 	}
 
 	lastCities[chatId] = cityReply
-	h.cityService.DeleteCity(city)
 	h.cityService.DeleteCity(cityReply)
-
 	return nil
+}
+
+func (h *BotHandler) checkPlayerMsg(chatId int64, city string, ctx tele.Context) (bool, error) {
+	var lastCity string
+	if val, ok := lastCities[chatId]; ok {
+		lastCity = val
+	}
+
+	if !h.cityService.Exists(city) {
+		if err := ctx.Send(cityNotExist); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+
+	if lastCity != "" {
+		if !h.cityService.CheckCity(lastCity, city) {
+			log.Println("letters don't match")
+			letter := h.cityService.GetLastChar(lastCity)
+			msg := fmt.Sprintf(letterResponse, letter)
+			if err := ctx.Send(msg); err != nil {
+				return false, err
+			}
+			return false, nil
+		}
+	}
+
+	if !h.cityService.Contains(city) {
+		if err := ctx.Send(cityBeenUse); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	return true, nil
 }
