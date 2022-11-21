@@ -24,6 +24,10 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 	chatId := ctx.Chat().ID
 	log.Printf("player named city: %s", city)
 
+	if !h.cityService.CheckList(chatId) {
+		h.cityService.NewList(chatId)
+	}
+
 	if lastCities == nil {
 		lastCities = make(map[int64]string)
 	}
@@ -33,9 +37,9 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 		return err
 	}
 
-	h.cityService.DeleteCity(city)
+	h.cityService.DeleteCity(city, chatId)
 
-	cityReply, err := h.cityService.GetRandomCity(city)
+	cityReply, err := h.cityService.GetRandomCity(city, chatId)
 	if err != nil {
 		if err := ctx.Send(citiesEnded); err != nil {
 			return err
@@ -57,7 +61,7 @@ func (h *BotHandler) PlayGame(ctx tele.Context) error {
 	}
 
 	lastCities[chatId] = cityReply
-	h.cityService.DeleteCity(cityReply)
+	h.cityService.DeleteCity(cityReply, chatId)
 	return nil
 }
 
@@ -86,7 +90,7 @@ func (h *BotHandler) checkPlayerMsg(chatId int64, city string, ctx tele.Context)
 		}
 	}
 
-	if !h.cityService.Contains(city) {
+	if !h.cityService.Contains(city, chatId) {
 		if err := ctx.Send(cityBeenUse); err != nil {
 			return false, err
 		}

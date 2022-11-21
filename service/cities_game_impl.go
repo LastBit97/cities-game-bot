@@ -14,23 +14,37 @@ import (
 
 type citiesGameImpl struct {
 	fullListCities []string
-	cities         []string
+	citiesMap      map[int64][]string
 }
 
 func NewCitiesGame() CitiesGame {
-	fullListCities := getFullListCities()
-	cities := getFullListCities()
-	return &citiesGameImpl{fullListCities, cities}
+	fullListCities := getListCities()
+	citiesMap := make(map[int64][]string)
+	return &citiesGameImpl{fullListCities, citiesMap}
 }
 
-func (cg *citiesGameImpl) GetCities() []string {
-	return cg.cities
+func (cg *citiesGameImpl) CheckList(chatId int64) bool {
+	if _, ok := cg.citiesMap[chatId]; ok {
+		return true
+	}
+	return false
 }
 
-func (cg *citiesGameImpl) DeleteCity(cityName string) {
-	for i, city := range cg.cities {
+func (cg *citiesGameImpl) NewList(chatId int64) {
+	cities := getListCities()
+	cg.citiesMap[chatId] = cities
+}
+
+func (cg *citiesGameImpl) GetCities(chatId int64) []string {
+	return cg.citiesMap[chatId]
+}
+
+func (cg *citiesGameImpl) DeleteCity(cityName string, chatId int64) {
+	cities := cg.citiesMap[chatId]
+
+	for i, city := range cities {
 		if city == cityName {
-			cg.cities = append(cg.cities[:i], cg.cities[i+1:]...)
+			cities = append(cities[:i], cities[i+1:]...)
 		}
 	}
 	log.Printf("remove city: %s from list", cityName)
@@ -46,8 +60,9 @@ func (cg *citiesGameImpl) Exists(cityName string) bool {
 	return false
 }
 
-func (cg *citiesGameImpl) Contains(cityName string) bool {
-	for _, city := range cg.cities {
+func (cg *citiesGameImpl) Contains(cityName string, chatId int64) bool {
+	cities := cg.citiesMap[chatId]
+	for _, city := range cities {
 		if city == cityName {
 			return true
 		}
@@ -55,8 +70,8 @@ func (cg *citiesGameImpl) Contains(cityName string) bool {
 	return false
 }
 
-func (cg *citiesGameImpl) GetRandomCity(cityName string) (string, error) {
-	cities, err := cg.getCorrectCities(cityName)
+func (cg *citiesGameImpl) GetRandomCity(cityName string, chatId int64) (string, error) {
+	cities, err := cg.getCorrectCities(cityName, chatId)
 	if err != nil {
 		return "", err
 	}
@@ -64,11 +79,12 @@ func (cg *citiesGameImpl) GetRandomCity(cityName string) (string, error) {
 	return cities[rand.Intn(len(cities))], nil
 }
 
-func (cg *citiesGameImpl) getCorrectCities(cityName string) ([]string, error) {
+func (cg *citiesGameImpl) getCorrectCities(cityName string, chatId int64) ([]string, error) {
 	lastChar := cg.GetLastChar(cityName)
+	cities := cg.citiesMap[chatId]
 
 	var correctCities []string
-	for _, city := range cg.cities {
+	for _, city := range cities {
 		firstChar := cg.getFirstChar(city)
 		if strings.EqualFold(firstChar, lastChar) {
 			correctCities = append(correctCities, city)
@@ -109,7 +125,7 @@ func (cg *citiesGameImpl) getFirstChar(city string) string {
 	return firstChar
 }
 
-func getFullListCities() []string {
+func getListCities() []string {
 	var cities []model.City
 
 	if err := utils.ReadAndUnmarshal("russian-cities.json", &cities); err != nil {
